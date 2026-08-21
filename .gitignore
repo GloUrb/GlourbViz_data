@@ -1,0 +1,20 @@
+# DONNÉES BRUTES ET DONNEES FINALES
+# jamais sur GitHub
+
+data-raw/discourses/
+#!data-raw/README.md
+
+data/
+
+
+# R / RSTUDIO
+
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Renviron
+
+# FICHIERS TEMPORAIRES
+*.tmp
+~$*
