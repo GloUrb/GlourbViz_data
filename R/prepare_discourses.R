@@ -2,12 +2,30 @@
 
 #' Préparer le lexique de discours
 #'
+#' Le lexique conserve :
+#' - en_word : libellé original du terme, utilisé pour l'affichage ;
+#' - match_word : forme à rechercher dans lemmatext.
+#'
+#' Si match_word est absent du fichier source, en_word est utilisé
+#' par défaut.
+#'
 #' @param lexique_brut Table contenant au minimum en_word
 #'   et un identifiant fid_word ou fid.
 #'
-#' @return Un data.frame avec fid_word et en_word.
+#' @return Un data.frame avec fid_word, en_word et match_word.
 #' @export
 prepare_lexicon <- function(lexique_brut) {
+  
+  if (!"en_word" %in% names(lexique_brut)) {
+    stop("Le lexique doit contenir une colonne appelée en_word.")
+  }
+  
+  if (!"match_word" %in% names(lexique_brut)) {
+    lexique_brut <- lexique_brut |>
+      dplyr::mutate(
+        match_word = en_word
+      )
+  }
   
   if ("fid_word" %in% names(lexique_brut)) {
     
@@ -15,7 +33,10 @@ prepare_lexicon <- function(lexique_brut) {
       dplyr::transmute(
         fid_word = fid_word,
         en_word = stringr::str_to_lower(
-          stringr::str_trim(en_word)
+          stringr::str_squish(en_word)
+        ),
+        match_word = stringr::str_to_lower(
+          stringr::str_squish(match_word)
         )
       )
     
@@ -25,7 +46,10 @@ prepare_lexicon <- function(lexique_brut) {
       dplyr::transmute(
         fid_word = fid,
         en_word = stringr::str_to_lower(
-          stringr::str_trim(en_word)
+          stringr::str_squish(en_word)
+        ),
+        match_word = stringr::str_to_lower(
+          stringr::str_squish(match_word)
         )
       )
     
@@ -36,19 +60,20 @@ prepare_lexicon <- function(lexique_brut) {
     )
   }
   
-  
   lexique |>
     dplyr::filter(
       !is.na(fid_word),
       !is.na(en_word),
-      en_word != ""
+      !is.na(match_word),
+      en_word != "",
+      match_word != ""
     ) |>
     dplyr::distinct(
       fid_word,
-      en_word
+      en_word,
+      match_word
     )
 }
-
 
 
 #' Préparer les pages web analysables
@@ -137,7 +162,6 @@ prepare_pages <- function(txt_page_work) {
 }
 
 
-
 #' Créer les informations descriptives ville-rivière
 #'
 #' @param pages Pages préparées avec prepare_pages().
@@ -170,7 +194,6 @@ create_info_city_river <- function(pages) {
 }
 
 
-
 #' Créer les informations descriptives par ville
 #'
 #' @param pages Pages préparées.
@@ -198,7 +221,6 @@ create_info_city <- function(pages) {
       .groups = "drop"
     )
 }
-
 
 
 #' Calculer les volumes de pages analysables
@@ -252,7 +274,6 @@ create_page_totals <- function(pages) {
 }
 
 
-
 #' Tokeniser les textes lemmatisés
 #'
 #' @param pages Pages préparées.
@@ -295,22 +316,312 @@ tokenize_discourses <- function(pages) {
 }
 
 
-
-#' Repérer les mots du lexique
+#' Repérer les termes du lexique dans les textes
+#'
+#' Cette fonction gère à la fois :
+#' - les termes simples : drought ;
+#' - les expressions multi-mots : climate change,
+#'   extreme weather event
+#'
+#' La correspondance est effectuée avec match_word, tandis que
+#' la colonne word retournée conserve en_word comme libellé
+#' original du lexique.
+#'
+#' Pour une expression multi-mots, token_start et token_end
+#' correspondent respectivement au premier et au dernier token
+#' de l'expression.
 #'
 #' @param tokens Tokens produits par tokenize_discourses().
-#' @param lexique Lexique préparé.
+#' @param lexique Lexique préparé par prepare_lexicon().
 #'
-#' @return Tokens correspondant aux mots du lexique.
+#' @return Une ligne par occurrence d'un terme du lexique.
 #' @export
 match_lexicon <- function(tokens, lexique) {
   
-  tokens |>
+  required_cols <- c(
+    "fid_word",
+    "en_word",
+    "match_word"
+  )
+  
+  missing_cols <- setdiff(
+    required_cols,
+    names(lexique)
+  )
+  
+  if (length(missing_cols) > 0) {
+    stop(
+      paste(
+        "Colonnes manquantes dans le lexique :",
+        paste(missing_cols, collapse = ", ")
+      )
+    )
+  }
+  
+  
+
+  # Tokenisation du lexique avec la MEME logique que le corpus
+
+  
+  lexicon_tokens <- lexique |>
+    
+    dplyr::select(
+      fid_word,
+      en_word,
+      match_word
+    ) |>
+    
+    dplyr::mutate(
+      match_word_to_tokenize = match_word
+    ) |>
+    
+    tidytext::unnest_tokens(
+      output = match_token,
+      input = match_word_to_tokenize,
+      token = "words",
+      to_lower = TRUE
+    ) |>
+    
+    dplyr::group_by(
+      fid_word,
+      en_word,
+      match_word
+    ) |>
+    
+    dplyr::mutate(
+      match_index = dplyr::row_number(),
+      n_tokens = dplyr::n()
+    ) |>
+    
+    dplyr::ungroup()
+  
+  
+
+  # 1. TERMES SIMPLES
+
+  
+  single_lookup <- lexicon_tokens |>
+    
+    dplyr::filter(
+      n_tokens == 1
+    ) |>
+    
+    dplyr::select(
+      fid_word,
+      en_word,
+      match_word,
+      match_token,
+      n_tokens
+    )
+  
+  
+  single_matches <- tokens |>
     
     dplyr::inner_join(
-      lexique,
+      single_lookup,
       by = c(
-        "word" = "en_word"
+        "word" = "match_token"
       )
+    ) |>
+    
+    dplyr::transmute(
+      fid_word,
+      word = en_word,
+      match_word,
+      
+      page_id,
+      citycode,
+      riviere,
+      hl,
+      query,
+      link,
+      
+      token_start = token_position,
+      token_end = token_position,
+      
+      n_tokens
+    )
+  
+  
+
+  # 2. EXPRESSIONS MULTI-MOTS
+
+  
+  multi_terms <- lexicon_tokens |>
+    
+    dplyr::filter(
+      n_tokens > 1
+    ) |>
+    
+    dplyr::group_by(
+      fid_word,
+      en_word,
+      match_word,
+      n_tokens
+    ) |>
+    
+    dplyr::summarise(
+      match_tokens = list(match_token),
+      .groups = "drop"
+    )
+  
+  
+  if (nrow(multi_terms) == 0) {
+    
+    multi_matches <- single_matches[0, ]
+    
+  } else {
+    
+    # On réduit d'abord le gros tableau de tokens aux mots
+    # susceptibles d'être utilisés dans une expression.
+    useful_multi_tokens <- unique(
+      unlist(multi_terms$match_tokens)
+    )
+    
+    
+    token_pool <- tokens |>
+      
+      dplyr::filter(
+        word %in% useful_multi_tokens
+      ) |>
+      
+      dplyr::select(
+        page_id,
+        citycode,
+        riviere,
+        hl,
+        query,
+        link,
+        token_position,
+        word
+      )
+    
+    
+    multi_matches_list <- lapply(
+      seq_len(nrow(multi_terms)),
+      function(i) {
+        
+        current_term <- multi_terms[i, ]
+        
+        parts <- current_term$match_tokens[[1]]
+        
+        current_n_tokens <- length(parts)
+        
+        
+        # Candidats = positions où apparaît le premier token
+        candidates <- token_pool |>
+          
+          dplyr::filter(
+            word == parts[1]
+          ) |>
+          
+          dplyr::transmute(
+            page_id,
+            citycode,
+            riviere,
+            hl,
+            query,
+            link,
+            token_start = token_position
+          )
+        
+        
+        if (nrow(candidates) == 0) {
+          return(single_matches[0, ])
+        }
+        
+        
+        # Vérification des tokens suivants aux positions
+        # immédiatement consécutives.
+        if (current_n_tokens >= 2) {
+          
+          for (j in 2:current_n_tokens) {
+            
+            next_positions <- token_pool |>
+              
+              dplyr::filter(
+                word == parts[j]
+              ) |>
+              
+              dplyr::transmute(
+                page_id,
+                token_start =
+                  token_position - (j - 1)
+              )
+            
+            
+            candidates <- candidates |>
+              
+              dplyr::inner_join(
+                next_positions,
+                by = c(
+                  "page_id",
+                  "token_start"
+                )
+              )
+            
+            
+            if (nrow(candidates) == 0) {
+              break
+            }
+          }
+        }
+        
+        
+        if (nrow(candidates) == 0) {
+          return(single_matches[0, ])
+        }
+        
+        
+        candidates |>
+          
+          dplyr::transmute(
+            fid_word =
+              current_term$fid_word[[1]],
+            
+            word =
+              current_term$en_word[[1]],
+            
+            match_word =
+              current_term$match_word[[1]],
+            
+            page_id,
+            citycode,
+            riviere,
+            hl,
+            query,
+            link,
+            
+            token_start,
+            
+            token_end =
+              token_start + current_n_tokens - 1,
+            
+            n_tokens =
+              current_n_tokens
+          )
+      }
+    )
+    
+    
+    multi_matches <- dplyr::bind_rows(
+      multi_matches_list
+    )
+  }
+  
+  
+
+  # 3. UNION DES TERMES SIMPLES ET MULTI-MOTS
+
+  
+  dplyr::bind_rows(
+    single_matches,
+    multi_matches
+  ) |>
+    
+    dplyr::arrange(
+      page_id,
+      token_start,
+      fid_word
     )
 }

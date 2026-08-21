@@ -1,9 +1,20 @@
 # CONTEXTE LEXICAL
 
-#' Créer les tokens de contexte autour des mots du lexique
+
+#' Créer les tokens de contexte autour des termes du lexique
+#'
+#' La fenêtre est calculée autour des BORNES du terme :
+#'
+#' - pour un terme simple, token_start = token_end ;
+#' - pour une expression multi-mots, les mots de l'expression
+#'   sont entièrement exclus du contexte.
+#'
+#' Exemple avec window = 5 :
+#'
+#' mot5 ... mot1 [EXTREME WEATHER EVENT] mot1 ... mot5
 #'
 #' @param tokens Tokens complets.
-#' @param tokens_lexique Occurrences des mots du lexique.
+#' @param tokens_lexique Occurrences des termes du lexique.
 #' @param window Taille de la fenêtre de part et d'autre.
 #'
 #' @return Tokens de contexte nettoyés.
@@ -14,6 +25,11 @@ create_context_tokens <- function(
     window = 5
 ) {
   
+  if (window < 1) {
+    stop("window doit être supérieur ou égal à 1.")
+  }
+  
+  
   lexicon_occurrences <- tokens_lexique |>
     
     dplyr::transmute(
@@ -23,6 +39,8 @@ create_context_tokens <- function(
       
       lexicon_word = word,
       
+      match_word,
+      
       page_id,
       
       citycode,
@@ -31,32 +49,74 @@ create_context_tokens <- function(
       hl,
       query,
       
-      occurrence_position = token_position
+      token_start,
+      token_end
     )
   
   
-  context_offsets <- tibble::tibble(
-    distance = c(
-      seq(-window, -1),
-      seq(1, window)
+
+  # CONTEXTE AVANT LE TERME
+
+  
+  before_offsets <- tibble::tibble(
+    distance = seq(
+      -window,
+      -1
     )
   )
   
   
-  context_positions <- tidyr::crossing(
+  context_before <- tidyr::crossing(
     lexicon_occurrences,
-    context_offsets
+    before_offsets
   ) |>
     
     dplyr::mutate(
       context_position =
-        occurrence_position + distance
+        token_start + distance
     ) |>
     
     dplyr::filter(
       context_position > 0
     )
   
+  
+
+  # CONTEXTE APRES LE TERME
+
+  
+  after_offsets <- tibble::tibble(
+    distance = seq(
+      1,
+      window
+    )
+  )
+  
+  
+  context_after <- tidyr::crossing(
+    lexicon_occurrences,
+    after_offsets
+  ) |>
+    
+    dplyr::mutate(
+      context_position =
+        token_end + distance
+    )
+  
+  
+
+  # UNION AVANT + APRES
+
+  
+  context_positions <- dplyr::bind_rows(
+    context_before,
+    context_after
+  )
+  
+  
+
+  # RECUPERATION DES MOTS AUX POSITIONS CALCULEES
+
   
   context_tokens <- context_positions |>
     
@@ -76,6 +136,10 @@ create_context_tokens <- function(
     )
   
   
+
+  # STOPWORDS
+
+  
   stop_words_en <- tidytext::stop_words |>
     
     dplyr::filter(
@@ -88,6 +152,10 @@ create_context_tokens <- function(
       context_word = word
     )
   
+  
+
+  # NETTOYAGE FINAL
+
   
   context_tokens |>
     
@@ -106,10 +174,10 @@ create_context_tokens <- function(
         context_word
       ) >= 3,
       
+      # Utile surtout pour les termes simples.
       context_word != lexicon_word
     )
 }
-
 
 
 #' Créer la table détaillée de contexte
@@ -143,9 +211,11 @@ create_context_table <- function(
     dplyr::summarise(
       nb_cooccurrences = dplyr::n(),
       
+      # Distance moyenne au bord le plus proche du terme.
       mean_abs_distance =
         mean(abs(distance)),
       
+      # Distance minimale au bord le plus proche du terme.
       min_abs_distance =
         min(abs(distance)),
       

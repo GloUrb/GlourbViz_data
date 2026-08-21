@@ -4,7 +4,11 @@
 #' Calculer les spécificités globales des mots de contexte
 #'
 #' Le corpus de référence correspond à l'ensemble des mots
-#' situés autour de tous les mots du lexique.
+#' situés autour de tous les mots du lexique, qu'ils soient
+#' simples ou composés de plusieurs mots.
+#' 
+#' lexicon_word conserve le libellé original en_word.
+
 #'
 #' @param context_tokens_clean Tokens de contexte nettoyés.
 #' @param lexique Lexique préparé.

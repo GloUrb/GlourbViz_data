@@ -3,6 +3,11 @@
 
 #' Créer la table lexicale par paire ville-rivière
 #'
+#' tokens_lexique contient maintenant une ligne par occurrence
+#' de terme du lexique, qu'il soit composé d'un ou plusieurs
+#' mots. Une expression comme "climate change" compte donc
+#' comme UNE occurrence.
+#' 
 #' @param tokens_lexique Occurrences des mots du lexique.
 #' @param pages_city_river Totaux de pages analysables.
 #' @param info_city_river Informations descriptives.
@@ -130,6 +135,9 @@ create_lexicon_city_river <- function(
 
 
 #' Créer la table lexicale par ville
+#' 
+#' tokens_lexique contient une ligne par occurrence de terme
+#' du lexique, y compris pour les expressions multi-mots.
 #'
 #' @param tokens_lexique Occurrences du lexique.
 #' @param pages_city Totaux par ville.

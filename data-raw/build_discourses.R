@@ -6,7 +6,7 @@
 # 0. CHARGEMENT DU PACKAGE EN DEVELOPPEMENT
 
 
-# À installer une seule fois si nécessaire :
+# À installer une seule fois
 # install.packages("devtools")
 
 devtools::load_all()
@@ -39,7 +39,7 @@ pages <- prepare_pages(
 
 
 cat(
-  "Nombre de mots dans le lexique :",
+  "Nombre de mots/termes dans le lexique :",
   nrow(lexique),
   "\n"
 )
@@ -67,6 +67,15 @@ cat(
   "\n"
 )
 
+cat(
+  "Termes dont match_word diffère de en_word :",
+  lexique |>
+    dplyr::filter(
+      en_word != match_word
+    ) |>
+    nrow(),
+  "\n"
+)
 
 
 # 3. INFORMATIONS DESCRIPTIVES
@@ -122,6 +131,47 @@ cat(
   nrow(tokens_lexique),
   "\n"
 )
+
+nb_termes_detectes <- tokens_lexique |>
+  dplyr::distinct(fid_word) |>
+  nrow()
+
+
+cat(
+  "Nombre de termes du lexique détectés :",
+  nb_termes_detectes,
+  "/",
+  nrow(lexique),
+  "\n"
+)
+
+
+termes_non_detectes <- lexique |>
+  
+  dplyr::anti_join(
+    tokens_lexique |>
+      dplyr::distinct(fid_word),
+    by = "fid_word"
+  ) |>
+  
+  dplyr::select(
+    fid_word,
+    en_word,
+    match_word
+  )
+
+
+if (nrow(termes_non_detectes) > 0) {
+  
+  cat(
+    "\nTermes non détectés dans le corpus :\n"
+  )
+  
+  print(
+    termes_non_detectes,
+    n = Inf
+  )
+}
 
 
 
@@ -313,6 +363,35 @@ print(
   exemple_drought
 )
 
+# Contrôle explicite de quelques expressions multi-mots.
+controle_multiword <- tokens_lexique |>
+  
+  dplyr::filter(
+    word %in% c(
+      "water quality",
+      "climate change",
+      "public health",
+      "seasonal flooding",
+      "extreme weather events"
+    )
+  ) |>
+  
+  dplyr::count(
+    fid_word,
+    word,
+    match_word,
+    sort = TRUE
+  )
+
+
+cat(
+  "\nContrôle des expressions multi-mots :\n"
+)
+
+print(
+  controle_multiword,
+  n = Inf
+)
 
 
 # 12. SAUVEGARDE
@@ -320,31 +399,31 @@ print(
 
 saveRDS(
   lexicon_discourses_city_river,
-  "data/lexicon_discourses_city_river.rds"
+  "data/glourbviz_lexicon_discourses_city_river.rds"
 )
 
 
 saveRDS(
   lexicon_discourses_city,
-  "data/lexicon_discourses_city.rds"
+  "data/glourbviz_lexicon_discourses_city.rds"
 )
 
 
 saveRDS(
   context,
-  "data/context.rds"
+  "data/glourbviz_context.rds"
 )
 
 
 saveRDS(
   context_specificities_global,
-  "data/context_specificities_global.rds"
+  "data/glourbviz_context_specificities_global.rds"
 )
 
 
 saveRDS(
   context_specificities_selected,
-  "data/context_specificities_selected.rds"
+  "data/glourbviz_context_specificities_selected.rds"
 )
 
 
