@@ -90,6 +90,8 @@ prepare_pages <- function(txt_page_work) {
   txt_page_work |>
     
     dplyr::select(
+      city_id,
+      fid,
       citycode,
       urban_aggl,
       ville,
@@ -150,8 +152,8 @@ prepare_pages <- function(txt_page_work) {
     ) |>
     
     dplyr::filter(
-      !is.na(citycode),
-      !is.na(riviere),
+      !is.na(city_id),
+      !is.na(fid),
       !is.na(lemmatext),
       stringr::str_trim(lemmatext) != ""
     ) |>
@@ -173,21 +175,45 @@ create_info_city_river <- function(pages) {
   pages |>
     
     dplyr::group_by(
-      citycode,
+      city_id,
       riviere
     ) |>
     
     dplyr::summarise(
-      urban_aggl = dplyr::first(urban_aggl),
-      ville = dplyr::first(ville),
+      
+      # Les fid sont conservés pour la traçabilité
+      fid = paste(
+        sort(unique(fid)),
+        collapse = " / "
+      ),
+      
+      urban_aggl = paste(
+        sort(unique(urban_aggl)),
+        collapse = " / "
+      ),
+      
+      ville = paste(
+        sort(unique(ville)),
+        collapse = " / "
+      ),
       
       latitude = dplyr::first(latitude),
       longitude = dplyr::first(longitude),
       
-      country_en = dplyr::first(country_en),
-      country_fr = dplyr::first(country_fr),
+      country_en = paste(
+        sort(unique(country_en)),
+        collapse = " / "
+      ),
       
-      gl = dplyr::first(gl),
+      country_fr = paste(
+        sort(unique(country_fr)),
+        collapse = " / "
+      ),
+      
+      gl = paste(
+        sort(unique(gl)),
+        collapse = " / "
+      ),
       
       .groups = "drop"
     )
@@ -198,25 +224,41 @@ create_info_city_river <- function(pages) {
 #'
 #' @param pages Pages préparées.
 #'
-#' @return Une ligne par citycode.
+#' @return Une ligne par city_id
 #' @export
 create_info_city <- function(pages) {
   
   pages |>
     
-    dplyr::group_by(citycode) |>
+    dplyr::group_by(city_id) |>
     
     dplyr::summarise(
-      urban_aggl = dplyr::first(urban_aggl),
-      ville = dplyr::first(ville),
+      urban_aggl = paste(
+        sort(unique(urban_aggl)),
+        collapse = "/ "
+      ),
+      ville = paste(
+        sort(unique(ville)),
+        collapse = " / "
+      ),
       
       latitude = dplyr::first(latitude),
       longitude = dplyr::first(longitude),
       
-      country_en = dplyr::first(country_en),
-      country_fr = dplyr::first(country_fr),
+      country_en = paste(
+        sort(unique(country_en)),
+        collapse = " / "
+      ),
       
-      gl = dplyr::first(gl),
+      country_fr = paste(
+        sort(unique(country_fr)),
+        collapse = " / "
+      ),
+      
+      gl = paste(
+        sort(unique(gl)),
+        collapse = " / "
+      ),
       
       .groups = "drop"
     )
@@ -234,7 +276,7 @@ create_page_totals <- function(pages) {
   pages_city_river <- pages |>
     
     dplyr::group_by(
-      citycode,
+      city_id,
       riviere,
       hl,
       query
@@ -251,7 +293,7 @@ create_page_totals <- function(pages) {
   pages_city <- pages |>
     
     dplyr::group_by(
-      citycode,
+      city_id,
       hl,
       query
     ) |>
@@ -286,6 +328,8 @@ tokenize_discourses <- function(pages) {
     
     dplyr::select(
       page_id,
+      city_id,
+      fid,
       citycode,
       riviere,
       hl,
@@ -431,6 +475,8 @@ match_lexicon <- function(tokens, lexique) {
       
       page_id,
       citycode,
+      city_id,
+      fid,
       riviere,
       hl,
       query,
@@ -487,6 +533,8 @@ match_lexicon <- function(tokens, lexique) {
       
       dplyr::select(
         page_id,
+        city_id,
+        fid,
         citycode,
         riviere,
         hl,
@@ -517,6 +565,8 @@ match_lexicon <- function(tokens, lexique) {
           
           dplyr::transmute(
             page_id,
+            city_id,
+            fid,
             citycode,
             riviere,
             hl,
@@ -586,6 +636,8 @@ match_lexicon <- function(tokens, lexique) {
               current_term$match_word[[1]],
             
             page_id,
+            city_id,
+            fid,
             citycode,
             riviere,
             hl,

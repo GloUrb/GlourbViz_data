@@ -1,4 +1,4 @@
-# SPECIFICITES TEXTOMETRIQUES
+# SPECIFICITES TEXTOM
 
 
 #' Calculer les spécificités globales des mots de contexte
@@ -55,9 +55,13 @@ calculate_context_specificities <- function(
 
 
 #' Sélectionner les spécificités utilisées par l'application
+#' 
+#' La fonction peut être appliquée aux spécificités globales
+#' ou aux spécificités calculées par ville.
 #'
-#' @param specificities Table issue de
-#'   calculate_context_specificities().
+#' @param specificities Table de spécificités contenant
+#'   au minimum spec et n.
+#'   
 #' @param spec_min Seuil minimum de spécificité.
 #' @param n_min Nombre minimum d'occurrences.
 #'
@@ -74,5 +78,70 @@ select_context_specificities <- function(
     dplyr::filter(
       spec >= spec_min,
       n >= n_min
+    )
+}
+
+
+
+#' Calculer les spécificités des mots de contexte par ville
+#'
+#' Les spécificités sont calculées séparément pour chaque ville.
+#' Le corpus de référence d'une ville correspond à l'ensemble
+#' des mots de contexte situés autour de tous les termes du lexique
+#' dans cette ville.
+#' 
+#' La table retournée conserve l'ensemble des combinaisons calculées.
+#' La colonne n peut être NA lorsqu'un mot de contexte n'est pas
+#' observé autour d'un terme du lexique dans une ville donnée.
+#'
+#' @param context_tokens_clean Tokens de contexte nettoyés,
+#'   contenant notamment city_id.
+#' @param lexique Lexique préparé.
+#'
+#' @return Table des spécificités par ville.
+#' @export
+calculate_context_specificities_city <- function(
+    context_tokens_clean,
+    lexique
+) {
+  
+  context_tokens_clean |>
+    
+    dplyr::group_by(city_id) |>
+    
+    dplyr::group_modify(
+      ~ mixr::tidy_specificities(
+        .x,
+        context_word,
+        lexicon_word
+      )
+    ) |>
+    
+    dplyr::ungroup() |>
+    
+    dplyr::left_join(
+      lexique |>
+        dplyr::transmute(
+          fid_word,
+          lexicon_word = en_word
+        ),
+      
+      by = "lexicon_word"
+    ) |>
+    
+    dplyr::select(
+      city_id,
+      fid_word,
+      lexicon_word,
+      context_word,
+      spec,
+      n
+    ) |>
+    
+    dplyr::arrange(
+      city_id,
+      fid_word,
+      dplyr::desc(spec),
+      dplyr::desc(n)
     )
 }

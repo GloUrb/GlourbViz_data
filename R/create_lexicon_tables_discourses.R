@@ -25,7 +25,7 @@ create_lexicon_city_river <- function(
     dplyr::group_by(
       fid_word,
       word,
-      citycode,
+      city_id,
       riviere,
       hl,
       query
@@ -44,7 +44,7 @@ create_lexicon_city_river <- function(
       pages_city_river,
       
       by = c(
-        "citycode",
+        "city_id",
         "riviere",
         "hl",
         "query"
@@ -55,7 +55,7 @@ create_lexicon_city_river <- function(
       info_city_river,
       
       by = c(
-        "citycode",
+        "city_id",
         "riviere"
       )
     ) |>
@@ -95,7 +95,8 @@ create_lexicon_city_river <- function(
       fid_word,
       word,
       
-      citycode,
+      city_id,
+      fid,
       urban_aggl,
       ville,
       riviere,
@@ -125,7 +126,7 @@ create_lexicon_city_river <- function(
     
     dplyr::arrange(
       fid_word,
-      citycode,
+      city_id,
       riviere,
       query,
       hl
@@ -156,7 +157,7 @@ create_lexicon_city <- function(
     dplyr::group_by(
       fid_word,
       word,
-      citycode,
+      city_id,
       hl,
       query
     ) |>
@@ -177,7 +178,7 @@ create_lexicon_city <- function(
       pages_city,
       
       by = c(
-        "citycode",
+        "city_id",
         "hl",
         "query"
       )
@@ -186,7 +187,7 @@ create_lexicon_city <- function(
     dplyr::left_join(
       info_city,
       
-      by = "citycode"
+      by = "city_id"
     ) |>
     
     dplyr::mutate(
@@ -242,7 +243,7 @@ create_lexicon_city <- function(
       fid_word,
       word,
       
-      citycode,
+      city_id,
       urban_aggl,
       ville,
       
@@ -277,7 +278,7 @@ create_lexicon_city <- function(
     
     dplyr::arrange(
       fid_word,
-      citycode,
+      city_id,
       query,
       hl
     )

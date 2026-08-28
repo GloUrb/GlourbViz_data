@@ -3,40 +3,30 @@
 # GloUrbViz
 
 
-# 0. CHARGEMENT DU PACKAGE EN DEVELOPPEMENT
+# CHARGEMENT DU PACKAGE EN DEVELOPPEMENT
 
-
-# À installer une seule fois
+# À installer une *
 # install.packages("devtools")
 
 devtools::load_all()
 
 
-# 1. LECTURE DES DONNEES SOURCES
-
-
+# LECTURE DONNEES
 txt_page_work <- readRDS(
-  "data-raw/discourses/txt_page_work.rds"
+  "data/glourbviz_txt_page_work.rds"
 )
-
 
 lexique_brut <- readxl::read_excel(
   "data-raw/discourses/lexique_discourses.xlsx"
 )
 
-
-# 2. PREPARATION
-
-
+#PREPA
 lexique <- prepare_lexicon(
   lexique_brut
 )
-
-
 pages <- prepare_pages(
   txt_page_work
 )
-
 
 cat(
   "Nombre de mots/termes dans le lexique :",
@@ -52,7 +42,7 @@ cat(
 
 cat(
   "Nombre de villes :",
-  dplyr::n_distinct(pages$citycode),
+  dplyr::n_distinct(pages$city_id),
   "\n"
 )
 
@@ -60,7 +50,7 @@ cat(
   "Nombre de paires ville-rivière :",
   pages |>
     dplyr::distinct(
-      citycode,
+      city_id,
       riviere
     ) |>
     nrow(),
@@ -78,34 +68,29 @@ cat(
 )
 
 
-# 3. INFORMATIONS DESCRIPTIVES
-
+#INFO DESCRIPTIVES
 
 info_city_river <- create_info_city_river(
   pages
 )
 
-
 info_city <- create_info_city(
   pages
 )
-
 
 page_totals <- create_page_totals(
   pages
 )
 
-
 pages_city_river <-
   page_totals$city_river
-
 
 pages_city <-
   page_totals$city
 
 
 
-# 4. TOKENISATION
+#TOKENISATION
 
 
 tokens <- tokenize_discourses(
@@ -175,8 +160,7 @@ if (nrow(termes_non_detectes) > 0) {
 
 
 
-# 5. TABLE VILLE-RIVIERE
-
+#TABLE VILLE-RIVIERE
 
 lexicon_discourses_city_river <-
   create_lexicon_city_river(
@@ -186,9 +170,7 @@ lexicon_discourses_city_river <-
   )
 
 
-
-# 6. TABLE VILLE
-
+#TABLE VILLE
 
 lexicon_discourses_city <-
   create_lexicon_city(
@@ -199,8 +181,7 @@ lexicon_discourses_city <-
 
 
 
-# 7. CONTEXTES +/- 5 MOTS
-
+# CONTEXTES +/- 5 MOTS
 
 context_tokens_clean <-
   create_context_tokens(
@@ -208,7 +189,6 @@ context_tokens_clean <-
     tokens_lexique = tokens_lexique,
     window = 5
   )
-
 
 context <-
   create_context_table(
@@ -218,8 +198,7 @@ context <-
 
 
 
-# 8. SPECIFICITES
-
+#SPECIFICITES
 
 context_specificities_global <-
   calculate_context_specificities(
@@ -227,17 +206,32 @@ context_specificities_global <-
     lexique
   )
 
-
 context_specificities_selected <-
   select_context_specificities(
     context_specificities_global,
+    spec_min = 2,
+    n_min = 5 # voir w/ lise ???
+  )
+
+
+    # Spéc par ville
+context_specificities_city <-
+  calculate_context_specificities_city(
+    context_tokens_clean,
+    lexique
+  )
+
+
+context_specificities_city_selected <-
+  select_context_specificities(
+    context_specificities_city,
     spec_min = 2,
     n_min = 5
   )
 
 
 
-# 9. CONTROLES
+# CONTROLES
 
 
 cat(
@@ -270,13 +264,24 @@ cat(
 
 cat(
   "context_specificities_selected :",
-  nrow(context_specificities_selected),
+  nrow(context_specificities_selected), # nrow nombre de lignes
   "\n"
 )
 
 
+cat(
+  "context_specificities_city :",
+  nrow(context_specificities_city), # nrow nombre de lignes
+  "\n"
+)
 
-# 10. CONTROLE DES DOUBLONS
+cat(
+  "context_specificities_city_selected :",
+  nrow(context_specificities_city_selected), # nrow nombre de lignes
+  "\n"
+)
+
+# CONTROLE DES DOUBLONS
 
 
 doublons_city_river <-
@@ -284,7 +289,7 @@ doublons_city_river <-
   
   dplyr::count(
     fid_word,
-    citycode,
+    city_id,
     riviere,
     hl,
     query,
@@ -301,7 +306,7 @@ doublons_city <-
   
   dplyr::count(
     fid_word,
-    citycode,
+    city_id,
     hl,
     query,
     name = "n"
@@ -329,20 +334,24 @@ cat(
 
 if (nrow(doublons_city_river) > 0) {
   stop(
-    "Des doublons anormaux existent dans la table city-river."
+    "Dsl Des doublons anormaux existent dans la table city-river..."
   )
 }
 
 
 if (nrow(doublons_city) > 0) {
   stop(
-    "Des doublons anormaux existent dans la table city."
+    "Dsl Des doublons anormaux existent dans la table city..."
   )
 }
 
 
 
-# 11. EXEMPLE DROUGHT
+# EXEMPLE DROUGHT
+
+cat(
+  "\n Exemple w/ drought :\n"
+)
 
 
 exemple_drought <-
@@ -394,7 +403,7 @@ print(
 )
 
 
-# 12. SAUVEGARDE
+# SAUVEGARDE tables
 
 
 saveRDS(
@@ -426,7 +435,17 @@ saveRDS(
   "data/glourbviz_context_specificities_selected.rds"
 )
 
+saveRDS(
+  context_specificities_city,
+  "data/glourbviz_context_specificities_city.rds"
+)
+
+saveRDS(
+  context_specificities_city_selected,
+  "data/glourbviz_context_specificities_city_selected.rds"
+)
+
 
 cat(
-  "\nTraitement terminé et données sauvegardées.\n"
+  "\nTraitement terminé (enfin) et données sauvegardées.\n"
 )

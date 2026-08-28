@@ -42,7 +42,8 @@ create_context_tokens <- function(
       match_word,
       
       page_id,
-      
+      city_id,
+      fid,
       citycode,
       riviere,
       
@@ -201,6 +202,8 @@ create_context_table <- function(
       
       page_id,
       
+      city_id,
+      fid,
       citycode,
       riviere,
       
@@ -272,6 +275,8 @@ create_context_table <- function(
       
       page_id,
       
+      city_id,
+      fid,
       citycode,
       urban_aggl,
       ville,
@@ -315,7 +320,7 @@ create_context_table <- function(
     
     dplyr::arrange(
       fid_word,
-      citycode,
+      city_id,
       riviere,
       page_id,
       dplyr::desc(nb_cooccurrences)
