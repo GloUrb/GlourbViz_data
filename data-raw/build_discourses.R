@@ -88,6 +88,8 @@ pages_city_river <-
 pages_city <-
   page_totals$city
 
+pages_city_global <-
+  page_totals$city_global
 
 
 #TOKENISATION
@@ -176,6 +178,15 @@ lexicon_discourses_city <-
   create_lexicon_city(
     tokens_lexique,
     pages_city,
+    info_city
+  )
+
+# TABLE VILLE GLOBALE
+
+lexicon_discourses_city_global <-
+  create_lexicon_city_global(
+    tokens_lexique,
+    pages_city_global,
     info_city
   )
 
@@ -281,7 +292,28 @@ cat(
   "\n"
 )
 
+cat(
+  "lexicon_discourses_city_global :",
+  nrow(lexicon_discourses_city_global),
+  "\n"
+)
+
 # CONTROLE DES DOUBLONS
+
+doublons_city_global <-
+  lexicon_discourses_city_global |>
+  dplyr::count(
+    fid_word,
+    city_id,
+    name = "n"
+  ) |>
+  dplyr::filter(n > 1)
+
+cat(
+  "Doublons city global :",
+  nrow(doublons_city_global),
+  "\n"
+)
 
 
 doublons_city_river <-
@@ -443,6 +475,11 @@ saveRDS(
 saveRDS(
   context_specificities_city_selected,
   "data/glourbviz_context_specificities_city_selected.rds"
+)
+
+saveRDS(
+  lexicon_discourses_city_global,
+  "data/glourbviz_lexicon_discourses_city_global.rds"
 )
 
 

@@ -96,13 +96,14 @@ create_lexicon_city_river <- function(
       word,
       
       city_id,
+      citycode_clean,
       fid,
       urban_aggl,
       ville,
       riviere,
       
-      latitude,
-      longitude,
+      lat,
+      lon,
       
       country_en,
       country_fr,
@@ -244,11 +245,12 @@ create_lexicon_city <- function(
       word,
       
       city_id,
+      citycode_clean,
       urban_aggl,
       ville,
       
-      latitude,
-      longitude,
+      lat,
+      lon,
       
       country_en,
       country_fr,
@@ -281,5 +283,96 @@ create_lexicon_city <- function(
       city_id,
       query,
       hl
+    )
+}
+
+
+#' Créer la table lexicale globale par ville
+#'
+#' Cette table regroupe toutes les rivières, langues et requêtes
+#' d'une même ville.
+#'
+#' Un lien web n'est compté qu'une seule fois par ville et
+#' par terme du lexique, même s'il a été récupéré via plusieurs
+#' fid, rivières, langues ou requêtes.
+#'
+#' @param tokens_lexique Occurrences du lexique.
+#' @param pages_city_global Totaux globaux de pages analysables par ville.
+#' @param info_city Informations descriptives des villes.
+#'
+#' @return Table lexicon_discourses_city_global.
+#' @export
+create_lexicon_city_global <- function(
+    tokens_lexique,
+    pages_city_global,
+    info_city
+) {
+  
+  tokens_lexique |>
+    
+    dplyr::group_by(
+      fid_word,
+      word,
+      city_id
+    ) |>
+    
+    dplyr::summarise(
+      
+      nb_pages_concerned =
+        dplyr::n_distinct(link),
+      
+      .groups = "drop"
+    ) |>
+    
+    dplyr::left_join(
+      pages_city_global,
+      by = "city_id"
+    ) |>
+    
+    dplyr::left_join(
+      info_city,
+      by = "city_id"
+    ) |>
+    
+    dplyr::mutate(
+      presence = TRUE,
+      
+      freq_pages = dplyr::if_else(
+        nb_pages_total_analysable > 0,
+        
+        nb_pages_concerned /
+          nb_pages_total_analysable,
+        
+        NA_real_
+      )
+    ) |>
+    
+    dplyr::select(
+      fid_word,
+      word,
+      
+      city_id,
+      citycode_clean,
+      urban_aggl,
+      ville,
+      
+      lat,
+      lon,
+      
+      country_en,
+      country_fr,
+      gl,
+      
+      presence,
+      
+      nb_pages_concerned,
+      nb_pages_total_analysable,
+      
+      freq_pages
+    ) |>
+    
+    dplyr::arrange(
+      fid_word,
+      city_id
     )
 }

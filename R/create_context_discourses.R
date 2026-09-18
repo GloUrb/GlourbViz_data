@@ -44,7 +44,6 @@ create_context_tokens <- function(
       page_id,
       city_id,
       fid,
-      citycode,
       riviere,
       
       hl,
@@ -204,7 +203,6 @@ create_context_table <- function(
       
       city_id,
       fid,
-      citycode,
       riviere,
       
       hl,
@@ -237,6 +235,8 @@ create_context_table <- function(
         dplyr::select(
           page_id,
           
+          citycode_clean,
+          
           urban_aggl,
           ville,
           
@@ -247,8 +247,9 @@ create_context_table <- function(
           domain,
           displayed_link,
           
-          latitude,
-          longitude,
+          
+          lat,
+          lon,
           
           country_en,
           country_fr,
@@ -276,8 +277,8 @@ create_context_table <- function(
       page_id,
       
       city_id,
+      citycode_clean,
       fid,
-      citycode,
       urban_aggl,
       ville,
       riviere,
@@ -285,8 +286,8 @@ create_context_table <- function(
       country_en,
       country_fr,
       
-      latitude,
-      longitude,
+      lat,
+      lon,
       
       gl,
       

@@ -90,12 +90,15 @@ prepare_pages <- function(txt_page_work) {
   txt_page_work |>
     
     dplyr::select(
+      citycode_clean,
       city_id,
       fid,
-      citycode,
       urban_aggl,
       ville,
       riviere,
+      
+      lon,
+      lat,
       
       X,
       position,
@@ -115,9 +118,6 @@ prepare_pages <- function(txt_page_work) {
       
       hl,
       query,
-      
-      latitude,
-      longitude,
       
       country_en,
       country_fr,
@@ -168,7 +168,7 @@ prepare_pages <- function(txt_page_work) {
 #'
 #' @param pages Pages préparées avec prepare_pages().
 #'
-#' @return Une ligne par paire citycode-riviere.
+#' @return Une ligne par paire city_id-riviere.
 #' @export
 create_info_city_river <- function(pages) {
   
@@ -180,6 +180,11 @@ create_info_city_river <- function(pages) {
     ) |>
     
     dplyr::summarise(
+      
+      citycode_clean = paste(
+        sort(unique(citycode_clean)),
+        collapse = " / "
+      ),
       
       # Les fid sont conservés pour la traçabilité
       fid = paste(
@@ -197,8 +202,8 @@ create_info_city_river <- function(pages) {
         collapse = " / "
       ),
       
-      latitude = dplyr::first(latitude),
-      longitude = dplyr::first(longitude),
+      lat = dplyr::first(lat),
+      lon = dplyr::first(lon),
       
       country_en = paste(
         sort(unique(country_en)),
@@ -233,6 +238,12 @@ create_info_city <- function(pages) {
     dplyr::group_by(city_id) |>
     
     dplyr::summarise(
+      
+      citycode_clean = paste(
+        sort(unique(citycode_clean)),
+        collapse = " / "
+      ),
+      
       urban_aggl = paste(
         sort(unique(urban_aggl)),
         collapse = "/ "
@@ -242,8 +253,8 @@ create_info_city <- function(pages) {
         collapse = " / "
       ),
       
-      latitude = dplyr::first(latitude),
-      longitude = dplyr::first(longitude),
+      lat = dplyr::first(lat),
+      lon = dplyr::first(lon),
       
       country_en = paste(
         sort(unique(country_en)),
@@ -269,10 +280,12 @@ create_info_city <- function(pages) {
 #'
 #' @param pages Pages préparées.
 #'
-#' @return Une liste contenant pages_city_river et pages_city.
+#' @return Une liste contenant les totaux par ville-rivière,
+#'   par ville et langue/requête, et par ville globale.
 #' @export
 create_page_totals <- function(pages) {
-  
+ 
+#PAR VILLE-RIVIERE + LANGUE + QUERY   
   pages_city_river <- pages |>
     
     dplyr::group_by(
@@ -289,7 +302,7 @@ create_page_totals <- function(pages) {
       .groups = "drop"
     )
   
-  
+# PAR VILLE + LANGUE + QUERY 
   pages_city <- pages |>
     
     dplyr::group_by(
@@ -309,9 +322,26 @@ create_page_totals <- function(pages) {
     )
   
   
+  # PAR VILLE GLOBALE
+  # Tous fid / rivières / query / hl confondus.
+  # Un même lien ne compte qu'1*  dans la ville.
+  
+  pages_city_global <- pages |>
+    
+    dplyr::group_by(city_id) |>
+    
+    dplyr::summarise(
+      nb_pages_total_analysable =
+        dplyr::n_distinct(link),
+      
+      .groups = "drop"
+    )
+
+  
   list(
     city_river = pages_city_river,
-    city = pages_city
+    city = pages_city,
+    city_global = pages_city_global
   )
 }
 
@@ -330,7 +360,6 @@ tokenize_discourses <- function(pages) {
       page_id,
       city_id,
       fid,
-      citycode,
       riviere,
       hl,
       query,
@@ -474,7 +503,6 @@ match_lexicon <- function(tokens, lexique) {
       match_word,
       
       page_id,
-      citycode,
       city_id,
       fid,
       riviere,
@@ -535,7 +563,6 @@ match_lexicon <- function(tokens, lexique) {
         page_id,
         city_id,
         fid,
-        citycode,
         riviere,
         hl,
         query,
@@ -567,7 +594,6 @@ match_lexicon <- function(tokens, lexique) {
             page_id,
             city_id,
             fid,
-            citycode,
             riviere,
             hl,
             query,
@@ -638,7 +664,6 @@ match_lexicon <- function(tokens, lexique) {
             page_id,
             city_id,
             fid,
-            citycode,
             riviere,
             hl,
             query,
