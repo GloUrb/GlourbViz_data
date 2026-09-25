@@ -62,22 +62,19 @@ calculate_context_specificities <- function(
 #' @param specificities Table de spécificités contenant
 #'   au minimum spec et n.
 #'   
-#' @param spec_min Seuil minimum de spécificité.
-#' @param n_min Nombre minimum d'occurrences.
+#' @param spec_min Seuil minimum de spécificité.(avant il y avait aussi un param de minimum de n mais supp)
 #'
 #' @return Table filtrée.
 #' @export
 select_context_specificities <- function(
     specificities,
-    spec_min = 2,
-    n_min = 5
+    spec_min = 2
 ) {
   
   specificities |>
     
     dplyr::filter(
-      spec >= spec_min,
-      n >= n_min
+      spec >= spec_min
     )
 }
 

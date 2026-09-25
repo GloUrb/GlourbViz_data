@@ -220,8 +220,7 @@ context_specificities_global <-
 context_specificities_selected <-
   select_context_specificities(
     context_specificities_global,
-    spec_min = 2,
-    n_min = 5 # voir w/ lise ???
+    spec_min = 2 # voir w/ lise ??? (c ok)
   )
 
 
@@ -236,8 +235,7 @@ context_specificities_city <-
 context_specificities_city_selected <-
   select_context_specificities(
     context_specificities_city,
-    spec_min = 2,
-    n_min = 5
+    spec_min = 2
   )
 
 
