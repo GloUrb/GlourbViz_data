@@ -7,6 +7,8 @@ data-raw/landscape/
 
 data/
 
+.RDataTmp*
+
 
 # R / RSTUDIO
 
