@@ -34,6 +34,17 @@ clean_landscape_pixels <- function(pixel) {
         is.na(perc_neu) & num_tot > 0,
         nneu / num_tot,
         perc_neu
+      ),
+      # Compléter la classification pour les zones à 100 % de pixels positifs
+      categ_prop = dplyr::if_else(
+        perc_pos == 1 & is.na(categ_prop),
+        "A : Major increase and minor decrease",
+        categ_prop
+      ),
+      code_prop = dplyr::if_else(
+        perc_pos == 1 & is.na(code_prop),
+        "A",
+        code_prop
       )
     ) |>
     dplyr::distinct(
